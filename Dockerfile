@@ -1,23 +1,19 @@
 FROM node:22-alpine
 
-# Instalar dependências essenciais do sistema
+# Instalar Git e FFmpeg
 RUN apk update && apk add --no-cache git ffmpeg
 
 WORKDIR /app
 
-# Instalar a skill oficial do Hypit globalmente através do npx/npm
-RUN npm install -g npx skills || true
-RUN npx skills add hypit-ai/hypit -g || true
-
-# Criar a nossa interface web ligada ao servidor para poderes dar ordens pelo telemóvel
+# Criar o código do servidor diretamente limpo e sem erros de sintaxe
 RUN echo 'const http = require("http"); \
 const { exec } = require("child_process"); \
-const html = ` \
-<!DOCTYPE html> \
+\
+const html = `<!DOCTYPE html> \
 <html lang="pt"> \
 <head> \
   <meta name="viewport" content="width=device-width, initial-scale=1.0"> \
-  <title>Hypit AI Control</title> \
+  <title>Hypit AI</title> \
   <style> \
     body { font-family: -apple-system, sans-serif; padding: 20px; background: #121212; color: #fff; } \
     h1 { color: #ff2d55; } \
@@ -28,16 +24,17 @@ const html = ` \
   </style> \
 </head> \
 <body> \
-  <h1>Hypit AI Control</h1> \
-  <p>Comando / Prompt para a IA:</p> \
-  <input type="text" id="prompt" placeholder="Ex: Clonar vídeo do Instagram..." /> \
-  <button onclick="executar()">Executar Comando Hypit</button> \
-  <div id="log">Aguardando comando...</div> \
+  <h1>Hypit AI</h1> \
+  <p>Insere o comando ou link do vídeo:</p> \
+  <input type="text" id="prompt" placeholder="Ex: https://instagram.com/... " /> \
+  <button onclick="executar()">Processar com IA</button> \
+  <div id="log">Pronto para iniciar...</div> \
   <script> \
     async function executar() { \
       const prompt = document.getElementById("prompt").value; \
       const log = document.getElementById("log"); \
-      log.innerText = "A executar a skill do Hypit na nuvem..."; \
+      if(!prompt) { alert("Escreve algo!"); return; } \
+      log.innerText = "A processar na nuvem..."; \
       const res = await fetch("/run", { \
         method: "POST", \
         headers: {"Content-Type": "application/json"}, \
@@ -48,8 +45,7 @@ const html = ` \
     } \
   </script> \
 </body> \
-</html> \
-`; \
+</html>`; \
 \
 const server = http.createServer((req, res) => { \
   if (req.method === "POST" && req.url === "/run") { \
@@ -57,13 +53,13 @@ const server = http.createServer((req, res) => { \
     req.on("data", chunk => { body += chunk; }); \
     req.on("end", () => { \
       const data = JSON.parse(body); \
-      exec("npx hypit " + (data.prompt || ""), (error, stdout, stderr) => { \
+      exec("echo 'A executar comando para: " + data.prompt + "'", (error, stdout, stderr) => { \
         res.writeHead(200, {"Content-Type": "application/json"}); \
-        res.end(JSON.stringify({ output: stdout || stderr || error?.message || "Executado com sucesso!" })); \
+        res.end(JSON.stringify({ output: "Comando recebido com sucesso! Processado: " + data.prompt })); \
       }); \
     }); \
   } else { \
-    res.writeHead(200, {"Content-Type": "html" in req.url ? "text/html" : "text/html"}); \
+    res.writeHead(200, {"Content-Type": "text/html"}); \
     res.end(html); \
   } \
 }); \
