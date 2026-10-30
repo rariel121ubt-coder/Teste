@@ -1,11 +1,12 @@
 FROM node:18-alpine
 
-# Instalar o git
+# Instalar o git e atualizar o npm para a versão mais recente
 RUN apk update && apk add --no-cache git
+RUN npm install -g npm@latest
 
 WORKDIR /app
 
-# Clonar o repositório oficial do Hypit diretamente
+# Clonar o repositório oficial do Hypit
 RUN git clone https://github.com/hypit-ai/hypit.git /app/hypit
 
 WORKDIR /app/hypit
