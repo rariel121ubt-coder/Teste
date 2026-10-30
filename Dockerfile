@@ -1,11 +1,14 @@
 FROM node:18-alpine
 
+# Instalar o git para o npm conseguir descarregar pacotes externos
+RUN apk update && apk add --no-cache git
+
 WORKDIR /app
 
-# Instalar o Hypit automaticamente no arranque do servidor
+# Instalar o Hypit globalmente
 RUN npm install -g npx skills add hypit-ai/hypit -g || true
 
-# Servidor web simples para manter o Render ativo
+# Criar o servidor web simples para manter o Render feliz
 RUN echo 'const http = require("http"); \
 const server = http.createServer((req, res) => { \
   res.writeHead(200, {"Content-Type": "text/plain"}); \
