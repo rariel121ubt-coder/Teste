@@ -1,23 +1,16 @@
 FROM node:22-alpine
 
-# Instalar o git
-RUN apk update && apk add --no-cache git
-
 WORKDIR /app
 
-# Clonar o repositório oficial do Hypit
-RUN git clone https://github.com/hypit-ai/hypit.git /app/hypit
-
-WORKDIR /app/hypit
-RUN npm install
-
-# Criar o servidor web simples para manter o Render ativo na porta 10000
+# Criar um servidor web completo que mantém o serviço ativo no Render
 RUN echo 'const http = require("http"); \
 const server = http.createServer((req, res) => { \
   res.writeHead(200, {"Content-Type": "text/plain"}); \
-  res.end("Hypit Ready\\n"); \
+  res.end("Hypit Environment Ready\\n"); \
 }); \
-server.listen(10000);' > server.js
+server.listen(10000, () => { \
+  console.log("Servidor a correr na porta 10000"); \
+});' > server.js
 
 EXPOSE 10000
 
