@@ -1,8 +1,7 @@
-FROM node:18-alpine
+FROM node:22-alpine
 
-# Instalar o git e atualizar o npm para a versão mais recente
+# Instalar o git
 RUN apk update && apk add --no-cache git
-RUN npm install -g npm@latest
 
 WORKDIR /app
 
