@@ -1,9 +1,15 @@
 FROM node:22-alpine
 
-RUN apk update && apk add --no-cache ffmpeg git
+# Instalar dependências essenciais do sistema
+RUN apk update && apk add --no-cache git ffmpeg
 
 WORKDIR /app
 
+# Instalar a skill oficial do Hypit globalmente através do npx/npm
+RUN npm install -g npx skills || true
+RUN npx skills add hypit-ai/hypit -g || true
+
+# Criar a nossa interface web ligada ao servidor para poderes dar ordens pelo telemóvel
 RUN echo 'const http = require("http"); \
 const { exec } = require("child_process"); \
 const html = ` \
@@ -11,37 +17,34 @@ const html = ` \
 <html lang="pt"> \
 <head> \
   <meta name="viewport" content="width=device-width, initial-scale=1.0"> \
-  <title>Hypit AI Video</title> \
+  <title>Hypit AI Control</title> \
   <style> \
     body { font-family: -apple-system, sans-serif; padding: 20px; background: #121212; color: #fff; } \
-    h1 { color: #007aff; } \
+    h1 { color: #ff2d55; } \
     input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; } \
     input { background: #222; color: #fff; border: 1px solid #444; } \
-    button { background: #007aff; color: white; font-weight: bold; } \
-    #status { margin-top: 15px; color: #ff9500; font-weight: bold; } \
+    button { background: #ff2d55; color: white; font-weight: bold; } \
+    #log { background: #000; padding: 10px; margin-top: 15px; border-radius: 5px; font-family: monospace; font-size: 14px; white-space: pre-wrap; color: #0f0; } \
   </style> \
 </head> \
 <body> \
-  <h1>Hypit Video AI</h1> \
-  <p>Cola o link do vídeo do Instagram:</p> \
-  <input type="text" id="url" placeholder="https://instagram.com/..." /> \
-  <input type="text" id="prompt" placeholder="O que queres alterar?" /> \
-  <button onclick="processar()">Processar Vídeo</button> \
-  <div id="status"></div> \
+  <h1>Hypit AI Control</h1> \
+  <p>Comando / Prompt para a IA:</p> \
+  <input type="text" id="prompt" placeholder="Ex: Clonar vídeo do Instagram..." /> \
+  <button onclick="executar()">Executar Comando Hypit</button> \
+  <div id="log">Aguardando comando...</div> \
   <script> \
-    async function processar() { \
-      const url = document.getElementById("url").value; \
+    async function executar() { \
       const prompt = document.getElementById("prompt").value; \
-      const status = document.getElementById("status"); \
-      if(!url) { alert("Insere um link!"); return; } \
-      status.innerText = "A processar vídeo na nuvem..."; \
-      const res = await fetch("/clone", { \
+      const log = document.getElementById("log"); \
+      log.innerText = "A executar a skill do Hypit na nuvem..."; \
+      const res = await fetch("/run", { \
         method: "POST", \
         headers: {"Content-Type": "application/json"}, \
-        body: JSON.stringify({ url, prompt }) \
+        body: JSON.stringify({ prompt }) \
       }); \
       const data = await res.json(); \
-      status.innerText = data.mensagem; \
+      log.innerText = data.output; \
     } \
   </script> \
 </body> \
@@ -49,17 +52,18 @@ const html = ` \
 `; \
 \
 const server = http.createServer((req, res) => { \
-  if (req.method === "POST" && req.url === "/clone") { \
+  if (req.method === "POST" && req.url === "/run") { \
     let body = ""; \
     req.on("data", chunk => { body += chunk; }); \
     req.on("end", () => { \
       const data = JSON.parse(body); \
-      console.log("A receber link:", data.url); \
-      res.writeHead(200, {"Content-Type": "application/json"}); \
-      res.end(JSON.stringify({ mensagem: "Vídeo recebido! O motor do Hypit está a executar na nuvem para o link: " + data.url })); \
+      exec("npx hypit " + (data.prompt || ""), (error, stdout, stderr) => { \
+        res.writeHead(200, {"Content-Type": "application/json"}); \
+        res.end(JSON.stringify({ output: stdout || stderr || error?.message || "Executado com sucesso!" })); \
+      }); \
     }); \
   } else { \
-    res.writeHead(200, {"Content-Type": "text/html"}); \
+    res.writeHead(200, {"Content-Type": "html" in req.url ? "text/html" : "text/html"}); \
     res.end(html); \
   } \
 }); \
