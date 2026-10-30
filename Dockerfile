@@ -1,7 +1,4 @@
-FROM node:22-bullseye
-
-# Instalar FFmpeg e dependências de vídeo
-RUN apt-get update && apt-get install -y ffmpeg git curl
+FROM node:18-alpine
 
 WORKDIR /app
 
